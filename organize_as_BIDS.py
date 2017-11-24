@@ -10,9 +10,12 @@
 """
 This script renames and reorganizes the fMRI data into the Brain Imaging Data Structure (BIDS).
 
-It's not thoroughly tested for boundary cases -- use it with caution, and run a test before you
+It's not thoroughly tested for all cases -- use it with caution, and run a test before you
 use it on your actual files. You can test it by running generate_test_files() and then main()
 (see below), and see if there's anything wrong in the generated directories/files.
+
+It also assumes that one task has a latin square design made by subject_id % num_runs (see
+line #238). Change it based on your design.
 """
 
 from __future__ import print_function
