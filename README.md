@@ -12,3 +12,6 @@ Automatically send triggers by generating keyboard presses (so you can test an f
 
 ### organize_as_BIDS.py
 Renames and reorganizes the fMRI data into the [Brain Imaging Data Structure (BIDS)](https://www.nature.com/articles/sdata201644).
+
+### neuro_data_snippets/suma_prep.sh and neuro_data_snippets/create_masks.py
+These two files help create ROI masks in native space, given data preprocessed by FMRIPREP/FreeSurfer.
