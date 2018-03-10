@@ -18,7 +18,7 @@ import subprocess
 lt_path = '/u/flashscratch/m/mengdu/suma'  
 lt_file = 'aparc+aseg_rank.niml.lt'
 # a regular expression to be used to find the ROI
-# change line #48 (output mask name) together with this line!!!
+# change line #55 (output mask name) together with this line!!!
 roi_regex = r'"\d+" "ctx-[lr]h-superiorparietal"'
 # 2 matches ('lh', 'rh') of the above regex is supposed to be found for each subject
 num_matches = 2
@@ -52,7 +52,7 @@ for sid in subject_list:
     for line in lines:
         splited = line.split('" "')
         index = splited[0][1:]
-        region = splited[1][4] + 'h_spl'  # output mask name; change this line together with line #15
+        region = splited[1][4] + 'h_spl'  # output mask name; change this line together with line #22
         # afni commands below
         roi_filename = 'sub-%s_%s' % (sid, region)
         filepath = alnd_aparc_path + '/sub-' + sid + '/' + alnd_aparc_file
