@@ -9,6 +9,7 @@
 
 """
 This script renames and reorganizes the fMRI data into the Brain Imaging Data Structure (BIDS).
+It's very rudimentary so you may need to change it (a lot) according to your need.
 
 Usage:
         python organize_as_BIDS.py <subject_id_1> <subject_id_2> ...
@@ -16,11 +17,13 @@ Usage:
         python organize_as_BIDS.py --all
 
 It's not thoroughly tested for all cases -- use it with caution, and run a test before you
-use it on your actual files. You can test it by running generate_test_files() and then main()
-(see below), and see if there's anything wrong in the generated directories/files.
+use it on your actual files. You can test it by changing the generate_test_files() function
+to generate a file structure similar to yours, then running generate_test_files() followed
+by main() (see the last two lines of this file), and see if there's anything wrong in the
+generated directories/files.
 
-It also assumes that one task has a latin square design made by subject_id % num_runs (see
-line #238). Change it based on your design.
+This script also assumes that one task has a latin square design made by subject_id % num_runs.
+Change it based on your design.
 """
 
 from __future__ import print_function
@@ -40,7 +43,7 @@ FUNC_NAME_DICT = {  # {current name: (new name, number of runs)}
 }
 ANAT_NAME_DICT = {'MPRAGE_4_min_1X1X1mm': 'T1w'}
 FMAP_NAME_DICT = {'SpinEchoFieldMap_': 'epi'}
-TOTAL_READOUT_TIME = '0.059740927'
+TOTAL_READOUT_TIME = '0.059740927'  # TODO read EffectiveEchoSpacing from file
 
 
 def rename(old_item, new_item):
