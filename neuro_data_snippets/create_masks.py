@@ -50,8 +50,8 @@ for sid in subject_list:
         print('ERROR: Found %d match(es) of the regular expression for subject %s.' % (len(lines), sid))
         continue
     for line in lines:
-        splited = line.split('" "')
-        index = splited[0][1:]
+        splited = line.split('" "')  # splited[0] is the brain region id; splited[1] is its name
+        index = splited[0][1:]  # splited[0][0] and splited[1][-1] are quotes
         region = splited[1][4] + 'h_spl'  # output mask name; change this line together with line #22
         # afni commands below
         roi_filename = 'sub-%s_%s' % (sid, region)
