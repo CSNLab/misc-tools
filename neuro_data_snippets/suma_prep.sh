@@ -1,13 +1,34 @@
 #!/bin/bash
+
+# This snippet prepares suma files that can be later used to create ROI
+# masks (see create_masks.py)
+
+# step1() converts freesurfer files to suma files (i.e., make ASCII
+# versions of left and right hemisphere), and move them to a scratch
+# directory
+
+# step2() helps check the alignment of the suma files -- you still
+# have to check them manually, but this function helps you open files
+# with afni and suma so you don't need to type the same stuff for every
+# subject.
+# When running step2, afni and suma will open up -- press 't' in the suma
+# window to see the files show up in afni so you can check if they look
+# right. When you are done, close both programs and then press any key in
+# the terminal to open them again for the next subject.
+
+
 . /u/local/Modules/default/init/modules.sh
 module load afni
 module load freesurfer/6.0.0
 
+
+# path to the freesurfer files output by fmriprep
 fsPath="/u/project/CCN/cparkins/data/hierarchy/fmriprep/r1_output/freesurfer"
+# path to a scratch directory -- suma output will be moved there after step 1 (because they are large)
 workingPath="$SCRATCH/suma"
-bidsPath="/u/project/CCN/cparkins/data/hierarchy"
-outPath="/u/project/CCN/cparkins/data/hierarchy/derivatives/aseg_aparc"
+# a list of subjects to process
 subjectList=(sub-132 sub-133 sub-134 sub-136 sub-137 sub-138 sub-139 sub-142 sub-143 sub-144)
+
 
 function step1() {
     # convert freesurfer files to suma files
@@ -16,6 +37,7 @@ function step1() {
         cd $fsPath/$sid
         echo "converting $sid"
         @SUMA_Make_Spec_FS -NIFTI -sid $sid
+        # move output to $workingPath
         mv SUMA $workingPath/$sid
     done
 }
@@ -35,8 +57,15 @@ function step2() {
     done
 }
 
+step1
+# step2
+
+
+
 # step3 is now unnecessary after adding the -NIFTI flag in step 1
 # function step3() {
+#     bidsPath="/u/project/CCN/cparkins/data/hierarchy"
+#     outPath="/u/project/CCN/cparkins/data/hierarchy/derivatives/aseg_aparc"
 #     # align stuff with experiment anatomy
 #     for sid in "${subjectList[@]}"
 #     do
@@ -56,6 +85,3 @@ function step2() {
 #                     -final NN
 #     done
 # }
-
-step1
-# step2

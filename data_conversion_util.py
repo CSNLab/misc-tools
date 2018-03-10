@@ -13,16 +13,18 @@ e.g. converting a json file to a python dictionary or a pickle file,
      converting data from wide format to long format,
      save the list as a csv file, etc.
 
-Example:
+This example converts a json file (with only one json object in it) to csv files:
     # read a json file
-    # this will take a while, so if you need to load the same json file multiple times
-    # you can save it as a pickle file and then read from the pickle file instead
+    # This will take a while, so if you need to load a same large json file multiple times
+    # you can save it as a pickle file and then read from the pickle file instead.
+    # Just omit the pkl_file parameter if you don't need that.
     data_dict = load_json('data.json', pkl_file='temp.pkl')
     # with open('temp.pkl', 'r') as infile:
     #     data_dict = pickle.load(infile)
 
     # flatten the dictionary to a list
-    data_list = [flatten(data_dict[sid], sid) for sid in data_dict]  # data_list is a list of tuples (col_names, values)
+    # data_list is a list of tuples (col_names, values)
+    data_list = [flatten(data_dict[sid], sid) for sid in data_dict]
     col_names, data = fill_missing_keys(data_list)
 
     # write to csv (in wide format)
@@ -31,6 +33,8 @@ Example:
     # convert to long format (see the docstring in cut_and_stack() for its usage)
     long_cols, long_data = cut_and_stack(col_names, data, cut_start=64, cut_length=11, cut_number=40,
                                          skip_cols=range(3, 64) + range(504, 3181))
+
+    # write to csv again (in long format)
     list2csv(long_data, 'long_data.csv', long_cols)
 """
 

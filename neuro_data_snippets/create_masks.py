@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+"""
+This script creates ROI masks in the native space, given input files prepared
+by suma (see suma_prep.sh). You may need to change all of the paths and parameters
+from line #17 to #34.
+"""
+
+
 from __future__ import print_function
 import os
 import re
