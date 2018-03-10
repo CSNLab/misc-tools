@@ -20,7 +20,7 @@ lt_file = 'aparc+aseg_rank.niml.lt'
 # a regular expression to be used to find the ROI
 # change line #55 (output mask name) together with this line!!!
 roi_regex = r'"\d+" "ctx-[lr]h-superiorparietal"'
-# 2 matches ('lh', 'rh') of the above regex is supposed to be found for each subject
+# 2 matches ('lh', 'rh') of the above regex are supposed to be found for each subject
 num_matches = 2
 # path and file name of the parcellation file output by suma
 # (this file should be in alignment with t1w and functional file)
