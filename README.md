@@ -7,6 +7,9 @@ See the docstring at the beginning of each file for detailed description, usage,
 ### `data_conversion_util.py`
 A few functions to convert data files between json, csv and python dictionary/list, or wide and long format.
 
+### `randomization.py`
+A script that randomize stimuli in a weird way (see the docstring in the file).
+
 ### `trigger_sender.py`
 Automatically send triggers by generating keyboard presses (so you can test an fMRI task script without an MRI scanner).
 
