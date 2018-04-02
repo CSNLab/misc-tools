@@ -45,7 +45,7 @@ def get_events(func_files):
             subj = func_files[s][r].subject
             run = func_files[s][r].run
             filename = 'sub-%s/func/sub-%s_task-%s_run-%s_events.tsv' % (subj, subj, task, run.zfill(2))
-            events[r].append(pd.read_csv(os.path.join(BIDS_DIR, filename), sep="\t"))
+            events[s].append(pd.read_csv(os.path.join(BIDS_DIR, filename), sep="\t"))
     return events
 
 
@@ -72,7 +72,7 @@ def get_info(events, confounds):
             event = events[s][r]
             info[s].append([Bunch(conditions=conditions,
                                   onsets=onsets(event),
-                                  durations=durations,
+                                  durations=durations(event),
                                   regressors=[list(confounds[s][r].FramewiseDisplacement.fillna(0)),
                                               list(confounds[s][r].aCompCor00),
                                               list(confounds[s][r].aCompCor01),
@@ -118,7 +118,7 @@ def specify_model(layout, func_files, info):
                 'func',
                 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (func_file.subject, task, func_file.run.zfill(2))
             )]
-            spec.inputs.time_repetition = layout.get_metadata(func_files[r][s].filename)['RepetitionTime']
+            spec.inputs.time_repetition = layout.get_metadata(func_files[s][r].filename)['RepetitionTime']
             spec.inputs.high_pass_filter_cutoff = 128.
             spec.inputs.subject_info = info[s][r]
             specify_model_results[s].append(spec.run())
@@ -166,11 +166,11 @@ def masking(mem, func_files):
         for r in range(num_runs):
             if s in EXCLUDING and EXCLUDING[s] == r:
                 continue
-            subj = func_files[r][s].subject
-            run = func_files[r][s].run
+            subj = func_files[s][r].subject
+            run = func_files[s][r].run
             preproc_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (subj, task, run.zfill(2))
             mask_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_brainmask.nii.gz' % (subj, task, run.zfill(2))
-            mask_results[r].append(
+            mask_results[s].append(
                 mask(in_file=os.path.join(PREPROC_DIR,
                                           'sub-%s' % subj,
                                           'func',
@@ -201,9 +201,12 @@ def film_gls(mem, mask_results, modelgen_results):
 def main():
     mem = Memory(base_dir=MEM_DIR)
     layout = BIDSLayout(BIDS_DIR)
-    # func_files[i] are files for run i+1
-    func_files = [[layout.get(type='bold', task=task, run=i+1, subject=subj, extensions='nii.gz')[0]
-                   for i in range(num_runs)] for subj in SUBJECTS]
+    # func_files[subject_index][run_index]
+    if num_runs > 1:
+        func_files = [[layout.get(type='bold', task=task, run=i+1, subject=subj, extensions='nii.gz')[0]
+                       for i in range(num_runs)] for subj in SUBJECTS]
+    else:
+        func_files = [layout.get(type='bold', task=task, subject=subj, extensions='nii.gz') for subj in SUBJECTS]
     events = get_events(func_files)
     confounds = get_confounds(func_files)
     info = get_info(events, confounds)

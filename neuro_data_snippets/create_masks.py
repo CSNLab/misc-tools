@@ -4,7 +4,7 @@
 """
 This script creates ROI masks in the native space, given input files prepared
 by suma (see suma_prep.sh). You may need to change all of the paths and parameters
-from line #17 to #34.
+from line #17 to #36.
 """
 
 
@@ -27,7 +27,9 @@ num_matches = 2
 alnd_aparc_path = '/u/flashscratch/m/mengdu/suma'
 alnd_aparc_file = 'aparc+aseg_rank.nii'
 # a functional file to be used for resampling (any functional file is fine)
-func_file = '/u/project/CCN/cparkins/data/hierarchy/derivatives/aseg_aparc/orig_files_4_afni/sub-%s_sac+orig'
+func_file = '/u/project/cparkins/data/hierarchy/derivatives/lv1/tstats/sac_tstats/sub-%s_sac.nii.gz'
+# dilation radius in mm
+dilation_radius = 7.2
 # all .nii files will be moved to this path at the end of this script
 output_path = 'spl_masks'
 # a list of subjects to process
@@ -35,13 +37,14 @@ subject_list = ['132', '133', '134', '136', '137', '138', '139', '142', '143', '
 
 
 def sh(cmd):  # run shell commands
-    print(cmd)
+    print(cmd + '\n')
     subprocess.call(cmd, shell=True)
 
 
-sh('module load afni')
+sh('. /u/local/Modules/default/init/modules.sh; module use /u/project/CCN/apps/modulefiles; module load fsl/5.0.10')
 
 for sid in subject_list:
+    print('Processing subject %s...\n' % sid)
     # find the number cooresponding to the ROI
     with open(lt_path + '/sub-' + sid + '/' + lt_file, 'r') as lt:
         content = lt.read()
@@ -53,24 +56,22 @@ for sid in subject_list:
         splited = line.split('" "')  # splited[0] is the brain region id; splited[1] is its name
         index = splited[0][1:]  # splited[0][0] and splited[1][-1] are quotes
         region = splited[1][4] + 'h_spl'  # output mask name; change this line together with line #22
-        # afni commands below
+        # creating a mask with fsl
         roi_filename = 'sub-%s_%s' % (sid, region)
-        filepath = alnd_aparc_path + '/sub-' + sid + '/' + alnd_aparc_file
-        # get a mask 
-        cmd = "3dcalc -a %s'<%s>' " % (filepath, index) + \
-                     "-prefix %s " % roi_filename + \
-                     "-expr 'step(a)'"
+        aparc_file = alnd_aparc_path + '/sub-' + sid + '/' + alnd_aparc_file
+        # get the roi
+        cmd = 'fslmaths %s -thr %s -uthr %s -bin %s' % (aparc_file, index, index, roi_filename)
         sh(cmd)
         # resample the above mask so it has the same resolution as the functional files
-        cmd = '3dresample -master ' + func_file % sid + ' ' + \
-                         '-rmode NN ' + \
-                         '-input %s+orig. ' % roi_filename + \
-                         '-prefix %s_resamp' % roi_filename
+        cmd = 'flirt -in %s.nii.gz -ref %s -applyxfm -usesqform -out %s_rsmp.nii.gz' % \
+              (roi_filename, func_file % sid, roi_filename)
         sh(cmd)
-        # convert the resampled mask to nifti
-        cmd = '3dAFNItoNIFTI %s_resamp+orig. ' % roi_filename + \
-                            '-prefix %s' % roi_filename
+        cmd = 'fslmaths %s_rsmp.nii.gz -thr 0.5 -bin %s_rsmp.nii.gz' % (roi_filename, roi_filename)
+        sh(cmd)
+        # dilate the mask
+        cmd = 'fslmaths %s_rsmp.nii.gz -kernel sphere %f -dilF %s_rsmp_dil.nii.gz' % \
+              (roi_filename, dilation_radius, roi_filename)
         sh(cmd)
     # move .nii files to output_path
-    cmd = 'mv *.nii %s/' % output_path
+    cmd = 'mv *.nii.gz %s/' % output_path
     sh(cmd)
