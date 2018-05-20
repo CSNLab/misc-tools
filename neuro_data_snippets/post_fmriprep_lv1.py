@@ -18,7 +18,7 @@ import os
 # Path
 BIDS_DIR = '/u/project/cparkins/data/hierarchy/'
 PREPROC_DIR = '/u/project/cparkins/data/hierarchy/fmriprep/output/fmriprep/'
-MEM_DIR = '/u/flashscratch/m/mengdu/nav/'
+MEM_DIR = '/u/project/cparkins/data/hierarchy/derivatives/lv1/work/'
 # Subjects & runs
 SUBJECTS = ['145', '146', '148']
 EXCLUDING = {4: 5}  # excluding the 6th run from the 5th subject in the above list
@@ -27,13 +27,13 @@ task = 'face'
 num_runs = 6
 conditions = ['u', 'd']
 onsets = lambda event: [list(event[event.direction == 'u'].onset),
-                            list(event[event.direction == 'd'].onset)]
+                        list(event[event.direction == 'd'].onset)]
 durations = lambda event: [list(event[event.direction == 'u'].duration - 2),
                            list(event[event.direction == 'd'].duration - 2)]
 # Conditions
 up_cond = ['u', 'T', ['u'], [1]]
 down_cond = ['d', 'T', ['d'], [1]]
-all_nav = ['All nav', 'F', [up_cond, down_cond]]
+all_nav = ['all nav', 'F', [up_cond, down_cond]]
 contrasts = [up_cond, down_cond, all_nav]
 
 
@@ -43,8 +43,11 @@ def get_events(func_files):
         events.append([])
         for r in range(num_runs):
             subj = func_files[s][r].subject
-            run = func_files[s][r].run
-            filename = 'sub-%s/func/sub-%s_task-%s_run-%s_events.tsv' % (subj, subj, task, run.zfill(2))
+            if num_runs == 1:
+                filename = 'sub-%s/func/sub-%s_task-%s_events.tsv' % (subj, subj, task)
+            else:
+                run = func_files[s][r].run
+                filename = 'sub-%s/func/sub-%s_task-%s_run-%s_events.tsv' % (subj, subj, task, run.zfill(2))
             events[s].append(pd.read_csv(os.path.join(BIDS_DIR, filename), sep="\t"))
     return events
 
@@ -55,7 +58,10 @@ def get_confounds(func_files):
         confounds.append([])
         for r in range(num_runs):
             func_file = func_files[s][r]
-            tsvname = 'sub-%s_task-%s_run-%s_bold_confounds.tsv' % (func_file.subject, task, func_file.run.zfill(2))
+            if num_runs == 1:
+                tsvname = 'sub-%s_task-%s_bold_confounds.tsv' % (func_file.subject, task)
+            else:
+                tsvname = 'sub-%s_task-%s_run-%s_bold_confounds.tsv' % (func_file.subject, task, func_file.run.zfill(2))
             confounds[s].append(pd.read_csv(os.path.join(PREPROC_DIR,
                                                          'sub-%s' % func_file.subject,
                                                          'func',
@@ -110,13 +116,17 @@ def specify_model(layout, func_files, info):
             if s in EXCLUDING and EXCLUDING[s] == r:
                 continue
             func_file = func_files[s][r]
+            if num_runs == 1:
+                filename = 'sub-%s_task-%s_bold_space-T1w_preproc.nii.gz' % (func_file.subject, task)
+            else:
+                filename = 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (func_file.subject, task, func_file.run.zfill(2))
             spec = model.SpecifyModel()
             spec.inputs.input_units = 'secs'
             spec.inputs.functional_runs = [os.path.join(
                 PREPROC_DIR,
                 'sub-%s' % func_file.subject,
                 'func',
-                'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (func_file.subject, task, func_file.run.zfill(2))
+                filename
             )]
             spec.inputs.time_repetition = layout.get_metadata(func_files[s][r].filename)['RepetitionTime']
             spec.inputs.high_pass_filter_cutoff = 128.
@@ -167,9 +177,13 @@ def masking(mem, func_files):
             if s in EXCLUDING and EXCLUDING[s] == r:
                 continue
             subj = func_files[s][r].subject
-            run = func_files[s][r].run
-            preproc_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (subj, task, run.zfill(2))
-            mask_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_brainmask.nii.gz' % (subj, task, run.zfill(2))
+            if num_runs == 1:
+                preproc_name = 'sub-%s_task-%s_bold_space-T1w_preproc.nii.gz' % (subj, task)
+                mask_name = 'sub-%s_task-%s_bold_space-T1w_brainmask.nii.gz' % (subj, task)
+            else:
+                run = func_files[s][r].run
+                preproc_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (subj, task, run.zfill(2))
+                mask_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_brainmask.nii.gz' % (subj, task, run.zfill(2))
             mask_results[s].append(
                 mask(in_file=os.path.join(PREPROC_DIR,
                                           'sub-%s' % subj,
@@ -199,6 +213,8 @@ def film_gls(mem, mask_results, modelgen_results):
 
 
 def main():
+    if not os.path.isdir(MEM_DIR):
+        os.mkdir(MEM_DIR)
     mem = Memory(base_dir=MEM_DIR)
     layout = BIDSLayout(BIDS_DIR)
     # func_files[subject_index][run_index]
