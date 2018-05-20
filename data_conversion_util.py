@@ -13,29 +13,47 @@ e.g. converting a json file to a python dictionary or a pickle file,
      converting data from wide format to long format,
      save the list as a csv file, etc.
 
-This example converts a json file (with only one json object in it) to csv files:
-    # read a json file
-    # This will take a while, so if you need to load a same large json file multiple times
+Example 1: Convert a json file containing only one json object to a csv file
+    # Read a json file to a dictionary
+    # This might take a while, so if you need to load a same large json file multiple times
     # you can save it as a pickle file and then read from the pickle file instead.
     # Just omit the pkl_file parameter if you don't need that.
     data_dict = load_json('data.json', pkl_file='temp.pkl')
     # with open('temp.pkl', 'r') as infile:
     #     data_dict = pickle.load(infile)
 
-    # flatten the dictionary to a list
+    # Flatten the dictionary to a list
     # data_list is a list of tuples (col_names, values)
     data_list = [flatten(data_dict[sid], sid) for sid in data_dict]
     col_names, data = fill_missing_keys(data_list)
 
-    # write to csv (in wide format)
+    # Write to csv (in wide format)
     list2csv(data, 'wide_data.csv', col_names)
 
-    # convert to long format (see the docstring in cut_and_stack() for its usage)
+    # Convert to long format while removing some unnecessary columns
+    # See the docstring in cut_and_stack() for its usage
     long_cols, long_data = cut_and_stack(col_names, data, cut_start=64, cut_length=11, cut_number=40,
-                                         skip_cols=range(3, 64) + range(504, 3181))
+                                         skip_cols=range(3, 64))
 
-    # write to csv again (in long format)
+    # Write to csv (in long format)
     list2csv(long_data, 'long_data.csv', long_cols)
+
+Example 2: Convert a folder of json files, each containing multiple json objects, to a csv file
+    # Read json files from DATA_FOLDER, and flatten each file
+    # Take the file names as IDs while ignoring the last four characters (file extensions)
+    data = [flatten(load_json(DATA_FOLDER + datafile, multiple_obj=True), obj_id=datafile[:-4])
+            for datafile in os.listdir(DATA_FOLDER)]
+    col_names, data = fill_missing_keys(data)
+
+    # Write to csv (in wide format)
+    list2csv(data, 'data.csv', col_names)
+
+    # Convert to long format while removing some unnecessary columns
+    skipping = range(1, 101) + range(2696, 2700)
+    col_names, data = cut_and_stack(col_names, data, cut_start=4, cut_length=9, cut_number=88, skipping)
+
+    # Write to csv (in long format)
+    list2csv(data, 'long_data.csv', col_names)
 """
 
 
@@ -49,9 +67,10 @@ def load_json(json_file, multiple_obj=False, pkl_file=None):
     Read a json file as a python object (or a list of python objects)
     :param json_file: string file name
     :param pkl_file: (string file name) optionally save the object as a pickle data file
-    :param multiple_obj: (boolean) whether the json file contains multiple objects (must have one object per line)
-                         or one object total
-    :return: a python object (if multiple_obj is False) or a list of python objects (if multiple_obj is True)
+    :param multiple_obj: (boolean) whether the json file contains multiple objects
+                         (must have one object per line) or one object total
+    :return: a python object (if multiple_obj is False) or
+             a list of python objects (if multiple_obj is True)
     """
     with open(json_file, 'r') as infile:
         if multiple_obj:
@@ -69,6 +88,9 @@ def load_json(json_file, multiple_obj=False, pkl_file=None):
 def flatten(obj, obj_id=None):
     """
     Flatten a nested list or dictionary to a one-dimensional list.
+    :param obj: a dictionary
+    :param obj_id: if not None, a string 'id' will be added to the beginning of the returned list of names,
+                   and this value will be added to the beginning of the returned list of values
     :return a list of string names, and a list of corresponding values
     """
     names, values = ([], []) if obj_id is None else (['id'], [obj_id])
@@ -76,9 +98,9 @@ def flatten(obj, obj_id=None):
     def _flatten(x, name=''):  # recursion
         if type(x) is dict:
             for k in x:
-#                 if len(k) == 13 and k[:2] == '14':  # is a time stamp, skip TODO this is only for trust game
-#                     _flatten(x[k], name)
-#                 else:
+                # if len(k) == 13 and k[:2] == '14':  # is a time stamp, skip TODO this is only for trust game
+                #     _flatten(x[k], name)
+                # else:
                 _flatten(x[k], name + k + '.')
         elif type(x) is list:
             for i, a in enumerate(x):
@@ -94,8 +116,9 @@ def flatten(obj, obj_id=None):
 
 def fill_missing_keys(data_list):
     """
-    Given a list of data with another list of column names to each row, find the union of column names, and make
-    every row of data have an equal length by inserting empty strings at the missing columns.
+    Given a list of data with another list of column names to each row,
+    find the union of column names, and make every row of data have an equal length
+    by inserting empty strings at the missing columns.
     Assuming column names are unique.
     :param data_list: a list of tuples (column_name_list, value_list) 
     :return a list of complete column names, and a 2-dimensional list of values
@@ -164,12 +187,13 @@ def _simple_stack(wide_cols, wide_data, cols, data, start, end, skip_cols, cut_n
 
 def cut_and_stack(wide_cols, wide_data, cut_start, cut_length, cut_number, skip_cols=()):
     """
-    Converts data from wide to long format. The cut range (cut_start, cut_start + cut_length * cut_number) has to be
-    continuous when columns in skip_cols are excluded.
+    Converts data from wide to long format.
+    The cut range (cut_start, cut_start + cut_length * cut_number) has to be continuous
+    after columns in skip_cols are excluded.
     :param wide_cols: (list) original data column names
     :param wide_data: (2D list) original data; each sublist should have the same length as wide_cols
-    :param cut_start: (integer) the index indicating where the repetition start. Columns and data will be cut and
-                      stacked right before this start index
+    :param cut_start: (integer) the index indicating where the repetition start.
+                      Columns and data will be cut and stacked right before this start index.
     :param cut_length: (integer) length of each repetition
     :param cut_number: (integer) number of repetitions
     :param skip_cols: (a list of integers) column indexes to be excluded.

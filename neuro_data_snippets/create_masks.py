@@ -5,6 +5,7 @@
 This script creates ROI masks in the native space, given input files prepared
 by suma (see suma_prep.sh). You may need to change all of the paths and parameters
 from line #17 to #36.
+Load fsl/5.0.10 before running this.
 """
 
 
@@ -27,7 +28,7 @@ num_matches = 2
 alnd_aparc_path = '/u/flashscratch/m/mengdu/suma'
 alnd_aparc_file = 'aparc+aseg_rank.nii'
 # a functional file to be used for resampling (any functional file is fine)
-func_file = '/u/project/cparkins/data/hierarchy/derivatives/lv1/tstats/sac_tstats/sub-%s_sac.nii.gz'
+func_file = '/u/project/cparkins/data/hierarchy/fmriprep/output/fmriprep/sub-%s/func/sub-%s_task-face_run-01_bold_space-T1w_preproc.nii.gz'
 # dilation radius in mm
 dilation_radius = 7.2
 # all .nii files will be moved to this path at the end of this script
@@ -40,8 +41,6 @@ def sh(cmd):  # run shell commands
     print(cmd + '\n')
     subprocess.call(cmd, shell=True)
 
-
-sh('. /u/local/Modules/default/init/modules.sh; module use /u/project/CCN/apps/modulefiles; module load fsl/5.0.10')
 
 for sid in subject_list:
     print('Processing subject %s...\n' % sid)
@@ -64,7 +63,7 @@ for sid in subject_list:
         sh(cmd)
         # resample the above mask so it has the same resolution as the functional files
         cmd = 'flirt -in %s.nii.gz -ref %s -applyxfm -usesqform -out %s_rsmp.nii.gz' % \
-              (roi_filename, func_file % sid, roi_filename)
+              (roi_filename, func_file % (sid, sid), roi_filename)
         sh(cmd)
         cmd = 'fslmaths %s_rsmp.nii.gz -thr 0.5 -bin %s_rsmp.nii.gz' % (roi_filename, roi_filename)
         sh(cmd)
