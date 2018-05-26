@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This snippet prepares suma files that can be later used to create ROI
-# masks (see create_masks.py)
+# This snippet prepares parcellation files with suma that can be later
+# used to create ROI masks (see create_masks.py) or other stuff
 
 # step1() converts freesurfer files to suma files (i.e., make ASCII
 # versions of left and right hemisphere), and move them to a scratch
@@ -12,9 +12,9 @@
 # with afni and suma so you don't need to type the same stuff for every
 # subject.
 # When running step2, afni and suma will open up -- press 't' in the suma
-# window to see the files show up in afni so you can check if they look
-# right. When you are done, close both programs and then press any key in
-# the terminal to open them again for the next subject.
+# window to see the files show up in afni, so you can check if they look
+# right. When you are done, close both programs, and then press any key in
+# the terminal to open afni and suma again for the next subject.
 
 
 . /u/local/Modules/default/init/modules.sh
