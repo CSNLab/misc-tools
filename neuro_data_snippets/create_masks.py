@@ -15,15 +15,15 @@ import re
 import subprocess
 
 
-# path and file name of the lookup table output by suma
-lt_path = '/u/flashscratch/m/mengdu/suma'  
+# path and file name of the lookup table output from suma
+lt_path = '/u/flashscratch/m/mengdu/suma'
 lt_file = 'aparc+aseg_rank.niml.lt'
 # a regular expression to be used to find the ROI
-# change line #55 (output mask name) together with this line!!!
+# change line #57 (output mask name) together with this line!!!
 roi_regex = r'"\d+" "ctx-[lr]h-superiorparietal"'
 # 2 matches ('lh', 'rh') of the above regex are supposed to be found for each subject
 num_matches = 2
-# path and file name of the parcellation file output by suma
+# path and file name of the parcellation file output from suma
 # (this file should be in alignment with t1w and functional file)
 alnd_aparc_path = '/u/flashscratch/m/mengdu/suma'
 alnd_aparc_file = 'aparc+aseg_rank.nii'
@@ -54,14 +54,14 @@ for sid in subject_list:
     for line in lines:
         splited = line.split('" "')  # splited[0] is the brain region id; splited[1] is its name
         index = splited[0][1:]  # splited[0][0] and splited[1][-1] are quotes
-        region = splited[1][4] + 'h_spl'  # output mask name; change this line together with line #22
+        region = splited[1][4] + 'h_spl'  # output mask name; change this line together with line #23
         # creating a mask with fsl
         roi_filename = 'sub-%s_%s' % (sid, region)
         aparc_file = alnd_aparc_path + '/sub-' + sid + '/' + alnd_aparc_file
-        # get the roi
+        # get the ROI
         cmd = 'fslmaths %s -thr %s -uthr %s -bin %s' % (aparc_file, index, index, roi_filename)
         sh(cmd)
-        # resample the above mask so it has the same resolution as the functional files
+        # resample the above ROI mask so it has the same resolution as the functional files
         cmd = 'flirt -in %s.nii.gz -ref %s -applyxfm -usesqform -out %s_rsmp.nii.gz' % \
               (roi_filename, func_file % (sid, sid), roi_filename)
         sh(cmd)
