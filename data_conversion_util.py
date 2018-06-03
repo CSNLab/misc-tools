@@ -127,7 +127,7 @@ def fill_missing_keys(data_list):
 
     # get a complete list of column names
     all_names = list(name_lists[0])
-    for row in xrange(1, len(name_lists)):
+    for row in range(1, len(name_lists)):
         name_list = name_lists[row]  # current name list
         all_col, cur_col = 0, 0  # all_names column, current name list column
         while cur_col < len(name_list):
@@ -142,10 +142,10 @@ def fill_missing_keys(data_list):
             all_col += 1
 
     # fill empty strings
-    for row in xrange(len(name_lists)):
+    for row in range(len(name_lists)):
         name_i = 0  # name_list iterator
         data_i = 0  # data[row] iterator
-        for i in xrange(len(all_names)):  # i: all_names iterator
+        for i in range(len(all_names)):  # i: all_names iterator
             if name_i < len(name_lists[row]):
                 if name_lists[row][name_i] != all_names[i]:
                     data[row].insert(data_i, '')
@@ -159,10 +159,10 @@ def fill_missing_keys(data_list):
 
 def longest_common_substring(s1, s2):
     # adapted from https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Longest_common_substring#Python_2
-    m = [[0] * (1 + len(s2)) for i in xrange(1 + len(s1))]
+    m = [[0] * (1 + len(s2)) for i in range(1 + len(s1))]
     longest, x_longest = 0, 0
-    for x in xrange(1, 1 + len(s1)):
-        for y in xrange(1, 1 + len(s2)):
+    for x in range(1, 1 + len(s1)):
+        for y in range(1, 1 + len(s2)):
             if s1[x - 1] == s2[y - 1]:
                 m[x][y] = m[x - 1][y - 1] + 1
                 if m[x][y] > longest:
@@ -177,11 +177,11 @@ def longest_common_substring(s1, s2):
 
 
 def _simple_stack(wide_cols, wide_data, cols, data, start, end, skip_cols, cut_number):
-    for col_i in xrange(start, end):
+    for col_i in range(start, end):
         if col_i not in skip_cols:
             cols.append(wide_cols[col_i])
             for row_i, row in enumerate(wide_data):
-                for new_row_i in xrange(row_i * cut_number, (row_i + 1) * cut_number):
+                for new_row_i in range(row_i * cut_number, (row_i + 1) * cut_number):
                     data[new_row_i].append(row[col_i])
 
 
@@ -201,7 +201,7 @@ def cut_and_stack(wide_cols, wide_data, cut_start, cut_length, cut_number, skip_
     """
     cols = []
     n_rows = len(wide_data) * cut_number
-    data = [[] for i in xrange(n_rows)]
+    data = [[] for i in range(n_rows)]
     skip_cols.sort()
     # get cut_end and a list of skipped columns within the cut range
     cut_end = cut_start + cut_length * cut_number  # if no column skipped in the cut range
@@ -221,8 +221,8 @@ def cut_and_stack(wide_cols, wide_data, cut_start, cut_length, cut_number, skip_
     second_cut_start = 0
     for row_i, row in enumerate(wide_data):
         skip_i = 0
-        for cut in xrange(cut_number):
-            for i in xrange(cut_length):
+        for cut in range(cut_number):
+            for i in range(cut_length):
                 data_row = row_i * cut_number + cut
                 col = cut_start + cut * cut_length + i + skip_i
                 while skip_i < len(skip_cols_in_cut) and col == skip_cols_in_cut[skip_i]:  # skip
