@@ -50,10 +50,10 @@ Example 2: Convert a folder of json files, each containing multiple json objects
 
     # Convert to long format while removing some unnecessary columns
     skipping = range(1, 101) + range(2696, 2700)
-    col_names, data = cut_and_stack(col_names, data, cut_start=4, cut_length=9, cut_number=88, skipping)
+    long_cols, long_data = cut_and_stack(col_names, data, cut_start=4, cut_length=9, cut_number=88, skipping)
 
     # Write to csv (in long format)
-    list2csv(data, 'long_data.csv', col_names)
+    list2csv(long_data, 'long_data.csv', long_cols)
 """
 
 
@@ -202,7 +202,9 @@ def cut_and_stack(wide_cols, wide_data, cut_start, cut_length, cut_number, skip_
     cols = []
     n_rows = len(wide_data) * cut_number
     data = [[] for i in range(n_rows)]
-    skip_cols.sort()
+    skip_cols = list(skip_cols)
+    if len(skip_cols) > 0:
+        skip_cols.sort()
     # get cut_end and a list of skipped columns within the cut range
     cut_end = cut_start + cut_length * cut_number  # if no column skipped in the cut range
     i, j = cut_start, 0
