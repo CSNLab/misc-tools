@@ -25,5 +25,8 @@ Prepare parcellation files with SUMA that can be later used to create ROI masks 
 #### `create_masks.py`
 Create ROI masks in native space, given data preprocessed by FMRIPREP/FreeSurfer and prepared with SUMA (see suma_prep.sh).
 
+#### `unsteady_volumns.py`
+Detect the initial unsteady volumns in confounds.tsv, and remove those initial volumns from preproc files. Also check for big head movements and print the info. Run this script before `post_fmriprep_lv1.py`.
+
 #### `post_fmriprep_lv1.py`
-An example for level 1 analysis given data preprocessed by FMRIPREP. This script was adapted from [this notebook](https://github.com/poldrack/fmri-analysis-vm/blob/master/analysis/postFMRIPREPmodelling/First%20and%20Second%20Level%20Modeling%20(FSL).ipynb).
+An example for level 1 analysis given data preprocessed by FMRIPREP. This script was adapted from [this notebook](https://github.com/poldrack/fmri-analysis-vm/blob/master/analysis/postFMRIPREPmodelling/First%20and%20Second%20Level%20Modeling%20(FSL).ipynb). Run this script after `unsteady_volumns.py`.

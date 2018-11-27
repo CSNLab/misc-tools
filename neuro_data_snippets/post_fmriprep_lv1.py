@@ -4,6 +4,12 @@
 """
 This script was adapted from
 https://github.com/poldrack/fmri-analysis-vm/blob/master/analysis/postFMRIPREPmodelling/First%20and%20Second%20Level%20Modeling%20(FSL).ipynb
+
+This script also handles the initial unsteady volumns of functional runs
+(note: run unsteady_volumns.py to remove those volumns from preprocessed
+files, before running this script).
+Double check line #90 - 94 to make sure the confound regressors matches
+your need.
 """
 
 import nipype.algorithms.modelgen as model   # model generation
@@ -15,21 +21,22 @@ import pandas as pd
 import os
 
 
-# Path
+# Paths
 BIDS_DIR = '/u/project/cparkins/data/hierarchy/'
 PREPROC_DIR = '/u/project/cparkins/data/hierarchy/fmriprep/output/fmriprep/'
 MEM_DIR = '/u/project/cparkins/data/hierarchy/derivatives/lv1/work/'
 # Subjects & runs
-SUBJECTS = ['145', '146', '148']
-EXCLUDING = {4: 5}  # excluding the 6th run from the 5th subject in the above list
+SUBJECTS = sorted([f[4:7] for f in os.listdir(PREPROC_DIR)
+                   if f.startswith('sub') and f.endswith('.html')])  # find all html file names
+EXCLUDING = {4: 5}  # excluding the 6th run from the 5th subject (0-indexed) in the above list
 # Experiment info
 task = 'face'
 num_runs = 6
 conditions = ['u', 'd']
-onsets = lambda event: [list(event[event.direction == 'u'].onset),
-                        list(event[event.direction == 'd'].onset)]
-durations = lambda event: [list(event[event.direction == 'u'].duration - 2),
-                           list(event[event.direction == 'd'].duration - 2)]
+onsets = lambda event, remove: [list(event[event.direction == 'u'].onset - remove),
+                                list(event[event.direction == 'd'].onset - remove)]
+durations = lambda event, remove: [list(event[event.direction == 'u'].duration - remove),
+                                   list(event[event.direction == 'd'].duration - remove)]
 # Conditions
 up_cond = ['u', 'T', ['u'], [1]]
 down_cond = ['d', 'T', ['d'], [1]]
@@ -47,7 +54,7 @@ def get_events(func_files):
                 filename = 'sub-%s/func/sub-%s_task-%s_events.tsv' % (subj, subj, task)
             else:
                 run = func_files[s][r].run
-                filename = 'sub-%s/func/sub-%s_task-%s_run-%s_events.tsv' % (subj, subj, task, run.zfill(2))
+                filename = 'sub-%s/func/sub-%s_task-%s_run-%s_events.tsv' % (subj, subj, task, str(run).zfill(2))
             events[s].append(pd.read_csv(os.path.join(BIDS_DIR, filename), sep="\t"))
     return events
 
@@ -61,7 +68,7 @@ def get_confounds(func_files):
             if num_runs == 1:
                 tsvname = 'sub-%s_task-%s_bold_confounds.tsv' % (func_file.subject, task)
             else:
-                tsvname = 'sub-%s_task-%s_run-%s_bold_confounds.tsv' % (func_file.subject, task, func_file.run.zfill(2))
+                tsvname = 'sub-%s_task-%s_run-%s_bold_confounds.tsv' % (func_file.subject, task, str(func_file.run).zfill(2))
             confounds[s].append(pd.read_csv(os.path.join(PREPROC_DIR,
                                                          'sub-%s' % func_file.subject,
                                                          'func',
@@ -75,36 +82,25 @@ def get_info(events, confounds):
     for s in range(len(SUBJECTS)):
         info.append([])
         for r in range(num_runs):
+            df = confounds[s][r]
+            # find how many rows to remove
+            cols = [c for c in df.columns if c.startswith('NonSteadyStateOutlier')]
+            unsteady = df[cols].sum(axis=1)
+            remove_until = len(unsteady[unsteady == 1].index)
+            # find names of confounds
+            regressor_names = [c for c in df.columns if (c.startswith('aCompCor')
+                               or c.startswith('Cosine') or c.startswith('AROMAAggrComp'))]
+            regressor_names += ['CSF', 'WhiteMatter', 'GlobalSignal', 'X', 'Y', 'Z',
+                                'RotX', 'RotY', 'RotZ']
+            regressors = [list(confounds[s][r][conf][remove_until:]) for conf in regressor_names]
+            # print(SUBJECTS[s], r, remove_until, regressor_names)
+
             event = events[s][r]
             info[s].append([Bunch(conditions=conditions,
-                                  onsets=onsets(event),
-                                  durations=durations(event),
-                                  regressors=[list(confounds[s][r].FramewiseDisplacement.fillna(0)),
-                                              list(confounds[s][r].aCompCor00),
-                                              list(confounds[s][r].aCompCor01),
-                                              list(confounds[s][r].aCompCor02),
-                                              list(confounds[s][r].aCompCor03),
-                                              list(confounds[s][r].aCompCor04),
-                                              list(confounds[s][r].aCompCor05),
-                                              list(confounds[s][r].X),
-                                              list(confounds[s][r].Y),
-                                              list(confounds[s][r].Z),
-                                              list(confounds[s][r].RotX),
-                                              list(confounds[s][r].RotY),
-                                              list(confounds[s][r].RotZ)],
-                                  regressor_names=['FramewiseDisplacement',
-                                                   'aCompCor00',
-                                                   'aCompCor01',
-                                                   'aCompCor02',
-                                                   'aCompCor03',
-                                                   'aCompCor04',
-                                                   'aCompCor05',
-                                                   'X',
-                                                   'Y',
-                                                   'Z',
-                                                   'RotX',
-                                                   'RotY',
-                                                   'RotZ'])])
+                                  onsets=onsets(event, remove=remove_until),
+                                  durations=durations(event, remove=0),
+                                  regressors=regressors,
+                                  regressor_names=regressor_names)])
     return info
 
 
@@ -119,7 +115,7 @@ def specify_model(layout, func_files, info):
             if num_runs == 1:
                 filename = 'sub-%s_task-%s_bold_space-T1w_preproc.nii.gz' % (func_file.subject, task)
             else:
-                filename = 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (func_file.subject, task, func_file.run.zfill(2))
+                filename = 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (func_file.subject, task, str(func_file.run).zfill(2))
             spec = model.SpecifyModel()
             spec.inputs.input_units = 'secs'
             spec.inputs.functional_runs = [os.path.join(
@@ -182,8 +178,8 @@ def masking(mem, func_files):
                 mask_name = 'sub-%s_task-%s_bold_space-T1w_brainmask.nii.gz' % (subj, task)
             else:
                 run = func_files[s][r].run
-                preproc_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (subj, task, run.zfill(2))
-                mask_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_brainmask.nii.gz' % (subj, task, run.zfill(2))
+                preproc_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_preproc.nii.gz' % (subj, task, str(run).zfill(2))
+                mask_name = 'sub-%s_task-%s_run-%s_bold_space-T1w_brainmask.nii.gz' % (subj, task, str(run).zfill(2))
             mask_results[s].append(
                 mask(in_file=os.path.join(PREPROC_DIR,
                                           'sub-%s' % subj,
@@ -213,6 +209,7 @@ def film_gls(mem, mask_results, modelgen_results):
 
 
 def main():
+    print('Running ' + sys.argv[1])
     if not os.path.isdir(MEM_DIR):
         os.mkdir(MEM_DIR)
     mem = Memory(base_dir=MEM_DIR)
