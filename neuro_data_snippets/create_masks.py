@@ -5,6 +5,16 @@
 This script creates ROI masks in the native space, given input files prepared
 by suma (see suma_prep.sh). You may need to change all of the paths and parameters
 from line #17 to #36.
+
+Note: Using SUMA is now unnecessary, so suma_prep.sh has been removed. You should
+be able to find parcellated brains and other pretty-much-ready-to-use freesurfer
+files in the output files of fmriprep (e.g. freesurfer/sub-X/mri/ribbon.mgz, 
+fmriprep/sub-X_task-Y_bold_space-T1w_label-aseg_roi.nii.gz). When using freesurfer
+files, a lookup table can be found in $FREESURFER_HOME/FreeSurferColorLUT.txt. The
+first column of that file indicates the numbers shown in the parcellation files.
+This file is not yet adapted or tested to using freesurfer files directly, but you
+should be able to do that easily.
+
 Load fsl/5.0.10 before running this.
 """
 
