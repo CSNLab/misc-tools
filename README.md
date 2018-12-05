@@ -19,11 +19,9 @@ Rename and reorganize the fMRI data into the [Brain Imaging Data Structure (BIDS
 ---
 ### Neuroimaging Data Snippets:
 
-#### `suma_prep.sh`
-Prepare parcellation files with SUMA that can be later used to create ROI masks (see create_masks.py) or other things.
-
 #### `create_masks.py`
-Create ROI masks in native space, given data preprocessed by FMRIPREP/FreeSurfer and prepared with SUMA (see suma_prep.sh).
+Create ROI masks in native space, given data preprocessed by FMRIPREP/FreeSurfer ~~and prepared with SUMA (see suma_prep.sh)~~.
+SUMA is now unnecessary (suma_prep.sh has been removed but you can still see it in previous commits [here](https://github.com/CSNLab/misc-tools/blob/c5ae00875d402f9cb31d0b59a5ee044e330bff8b/neuro_data_snippets/suma_prep.sh)). You can easily adapt this script so it uses FreeSurfer files directly.
 
 #### `unsteady_volumns.py`
 Detect the initial unsteady volumns in confounds.tsv, and remove those initial volumns from preproc files. Also check for big head movements and print the info. Run this script before `post_fmriprep_lv1.py`.
