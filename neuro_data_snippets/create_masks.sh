@@ -15,8 +15,8 @@
 . /u/local/Modules/default/init/modules.sh
 module load fsl/5.0.10
 
-refDir="/u/project/cparkins/data/hierarchy/derivatives/fmriprep/"
-freesurferDir="/u/project/cparkins/data/hierarchy/derivatives/freesurfer/"
+refDir="/u/project/cparkins/data/hierarchy/derivatives/fmriprep"
+freesurferDir="/u/project/cparkins/data/hierarchy/derivatives/freesurfer"
 maskDir="/u/project/CCN/cparkins/data/hierarchy/derivatives/masks"
 outDir="$maskDir/ribbon_masks"
 subjectList=(sub-132 sub-145 sub-161)
