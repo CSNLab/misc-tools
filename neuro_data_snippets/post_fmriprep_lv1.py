@@ -8,8 +8,8 @@ https://github.com/poldrack/fmri-analysis-vm/blob/master/analysis/postFMRIPREPmo
 This script also handles the initial unsteady volumns of functional runs
 (note: run unsteady_volumns.py to remove those volumns from preprocessed
 files, before running this script).
-Double check line #90 - 94 to make sure the confound regressors matches
-your need.
+Change line #25 - 45 as necessary, and double check line #90 - 94 to make
+sure the confound regressors matches your need.
 """
 
 import nipype.algorithms.modelgen as model   # model generation
@@ -28,7 +28,7 @@ MEM_DIR = '/u/project/cparkins/data/hierarchy/derivatives/lv1/work/'
 # Subjects & runs
 SUBJECTS = sorted([f[4:7] for f in os.listdir(PREPROC_DIR)
                    if f.startswith('sub') and f.endswith('.html')])  # find all html file names
-EXCLUDING = {4: 5}  # excluding the 6th run from the 5th subject (0-indexed) in the above list
+EXCLUDING = {}  # e.g. {4: 5} excludes the 6th run from the 5th subject (0-indexed) in the SUBJECTS list
 # Experiment info
 task = 'face'
 num_runs = 6
@@ -209,7 +209,7 @@ def film_gls(mem, mask_results, modelgen_results):
 
 
 def main():
-    print('Running ' + sys.argv[1])
+    print('Running subjects:', str(SUBJECTS))
     if not os.path.isdir(MEM_DIR):
         os.mkdir(MEM_DIR)
     mem = Memory(base_dir=MEM_DIR)
