@@ -16,7 +16,10 @@ import nipype.algorithms.modelgen as model   # model generation
 from nipype.interfaces import fsl
 from nipype.interfaces.base import Bunch
 from nipype.caching import Memory
-from bids.grabbids import BIDSLayout
+try:
+    from bids.layout import BIDSLayout
+except ModuleNotFoundError:
+    from bids.grabbids import BIDSLayout
 import pandas as pd
 import os
 
