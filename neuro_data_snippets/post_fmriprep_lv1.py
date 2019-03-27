@@ -38,10 +38,9 @@ onsets = lambda event, remove: [list(event[event.direction == 'u'].onset - remov
 durations = lambda event, remove: [list(event[event.direction == 'u'].duration - remove),
                                    list(event[event.direction == 'd'].duration - remove)]
 # Conditions
-up_cond = ['u', 'T', ['u'], [1]]
-down_cond = ['d', 'T', ['d'], [1]]
-all_nav = ['all nav', 'F', [up_cond, down_cond]]
-contrasts = [up_cond, down_cond, all_nav]
+tstats = [[cond, 'T', [cond], [1]] for cond in conditions]
+fstat = ['all', 'F', tstats]
+contrasts = tstats + [fstat]
 
 
 def get_events(func_files):
