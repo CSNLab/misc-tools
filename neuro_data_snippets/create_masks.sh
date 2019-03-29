@@ -49,15 +49,15 @@ function all_parcel_masks() {
 				roi_name=${roi_map[$roi_id]}
             	echo -e "${sid}\t${roi_id}\t${roi_name}\t${roi_voxels} voxels"
                 # make mask
-                fslmaths $aparcaseg -thr $lower_thr -uthr $upper_thr -bin $outDir/$sid/${sid}_roi${roi_id}${roi_name}.nii.gz
+                fslmaths $aparcaseg -thr $lower_thr -uthr $upper_thr -bin $outDir/$sid/${sid}_roi${roi_id}-${roi_name}.nii.gz
                 # resample
-                flirt -in $outDir/$sid/${sid}_roi${roi_id}${roi_name}.nii.gz \
+                flirt -in $outDir/$sid/${sid}_roi${roi_id}-${roi_name}.nii.gz \
                       -ref $fmriprepDir/$sid/func/$sid\_task-face_run-01_bold_space-T1w_preproc.nii.gz \
                       -applyxfm -usesqform \
-                      -out $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp.nii.gz
-                fslmaths $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp.nii.gz -thr 0.5 -bin $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp.nii.gz
+                      -out $outDir/$sid/${sid}_roi${roi_id}-${roi_name}_rsmp.nii.gz
+                fslmaths $outDir/$sid/${sid}_roi${roi_id}-${roi_name}_rsmp.nii.gz -thr 0.5 -bin $outDir/$sid/${sid}_roi${roi_id}-${roi_name}_rsmp.nii.gz
                 # dilate
-                fslmaths $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp.nii.gz -kernel sphere $dilate -dilM $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp_dil${dilate}mm.nii.gz
+                fslmaths $outDir/$sid/${sid}_roi${roi_id}-${roi_name}_rsmp.nii.gz -kernel sphere $dilate -dilM $outDir/$sid/${sid}_roi${roi_id}-${roi_name}_rsmp_dil${dilate}mm.nii.gz
             fi
         done
     done
