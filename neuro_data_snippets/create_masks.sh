@@ -24,14 +24,14 @@ dilate=3  # in mm
 function all_parcel_masks() {
     # this function creates ROI masks for all parcels found in a subject's aparcaseg file
     cd $maskDir
-	# extracts all ROI ID-name pairs from FreeSurferColorLUT.txt
-	cat $FREESURFER_HOME/FreeSurferColorLUT.txt | grep -o '^[0-9]\+\s\+[-_.a-zA-Z0-9]\+' > ROIlist.txt
-	declare -A roi_map
-	while IFS=' ' read id name  # ROI ID and ROI name are separated by space in ROIlist.txt
-	do
-		roi_map[$id]=$name  # create a hash map of ROI ID-name pairs
-	done < ROIlist.txt
-	# iterate through subjects
+    # extracts all ROI ID-name pairs from FreeSurferColorLUT.txt
+    cat $FREESURFER_HOME/FreeSurferColorLUT.txt | grep -o '^[0-9]\+\s\+[-_.a-zA-Z0-9]\+' > ROIlist.txt
+    declare -A roi_map
+    while IFS=' ' read id name  # ROI ID and ROI name are separated by space in ROIlist.txt
+    do
+        roi_map[$id]=$name  # create a hash map of ROI ID-name pairs
+    done < ROIlist.txt
+    # iterate through subjects
     for sid in "${subjectList[@]}"
     do
         aparcaseg=$fmriprepDir/$sid/anat/$sid\_T1w_label-aparcaseg_roi.nii.gz  # parcellation file
@@ -39,14 +39,14 @@ function all_parcel_masks() {
         # iterate through all ROIs
         for roi_id in "${!roi_map[@]}"
         do
-			# use ROI ID +- 0.1 as thresholds
+            # use ROI ID +- 0.1 as thresholds
             lower_thr=`echo "$roi_id-0.1" | bc`
             upper_thr=`echo "$roi_id+0.1" | bc`
             # get the number of voxels that has the ROI label i
             roi_voxels=`fslstats $aparcaseg -l $lower_thr -u $upper_thr -V | grep -o '^[0-9]*'`
             if [ $roi_voxels -gt 0 ]  # if ROI has more than 0 voxel
             then
-				roi_name=${roi_map[$roi_id]}
+                roi_name=${roi_map[$roi_id]}
             	echo -e "${sid}\t${roi_id}\t${roi_name}\t${roi_voxels} voxels"
                 # make mask
                 fslmaths $aparcaseg -thr $lower_thr -uthr $upper_thr -bin $outDir/$sid/${sid}_roi${roi_id}-${roi_name}.nii.gz
