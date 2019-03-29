@@ -1,37 +1,90 @@
 #!/bin/bash
 
 # This script shows an example for mask creation. It takes input from freesurfer recon-all
-# results, and creates masks of cortical ribbons for functional runs in subject native space.
+# results, and creates masks for functional runs in subject native space.
 
-# Note: If you are creating masks for a particular ROI, use a parcellation file as the input
-# (replacing $freesurferDir/$sid/mri/ribbon.mgz). FMRIPREP should output parcellation files
-# in sub-X/anat directories (e.g. sub-X_task-Y_bold_space-T1w_label-aseg_roi.nii.gz).
-# To find out what value corresponds to what ROI  in the parcellation file, a lookup table
+# Note: To find out what value corresponds to what ROI in the parcellation file, a lookup table
 # can be found at $FREESURFER_HOME/FreeSurferColorLUT.txt. The first column of that file
-# indicates the numbers shown in the parcellation files. You will need to change step b in
-# this file to extract the number you want.
+# indicates the numbers shown in the parcellation files.
+# If you need a mask for a particular ROI, find the ROI ID and change step a and b in the
+# ribbon_masks function to extract the number you want.
 
 
 . /u/local/Modules/default/init/modules.sh
 module load fsl/5.0.10
 
-refDir="/u/project/cparkins/data/hierarchy/derivatives/fmriprep"
+fmriprepDir="/u/project/cparkins/data/hierarchy/derivatives/fmriprep"  # to find a functional run
 freesurferDir="/u/project/cparkins/data/hierarchy/derivatives/freesurfer"
 maskDir="/u/project/CCN/cparkins/data/hierarchy/derivatives/masks"
-outDir="$maskDir/ribbon_masks"
-subjectList=(sub-132 sub-145 sub-161)
+outDir="$maskDir/parcel_masks"
+subjectList=$1  #($(ls -d ${fmriprepDir}/sub*/ | grep -o sub-...))
+dilate=3  # in mm
 
 
-for sid in "${subjectList[@]}"
-do
-	# a) convert freesurfer ribbon.mgz to nifti
-	mri_convert $freesurferDir/$sid/mri/ribbon.mgz $outDir/$sid\_ribbon.nii.gz
-	# b) make a ribbon mask by taking out 3 (Left-Cerebral-Cortex) and 42 (Right-Cerebral-Cortex)
-	#  1) minus 22.5  2) take absolute value  3) mask out everything other than 19.5  4) convert to binary
-	fslmaths $outDir/$sid\_ribbon.nii.gz -sub 22.5 -abs -thr 19.5 -uthr 19.5 -bin $outDir/$sid\_ribbon.nii.gz
-	# c) resample
-	flirt -in $outDir/$sid\_ribbon.nii.gz -ref $refDir/$sid/func/$sid\_task-face_run-01_bold_space-T1w_preproc.nii.gz -applyxfm -usesqform -out $outDir/$sid\_ribbon_rsmp.nii.gz
-	fslmaths $outDir/$sid\_ribbon_rsmp.nii.gz -thr 0.5 -bin $outDir/$sid\_ribbon_rsmp.nii.gz
-	# d) dilate
-	fslmaths $outDir/$sid\_ribbon_rsmp.nii.gz -kernel sphere 7.2 -dilM $outDir/$sid\_ribbon_rsmp_dil.nii.gz
-done
+function all_parcel_masks() {
+    # this function creates ROI masks for all parcels found in a subject's aparcaseg file
+    cd $maskDir
+	# extracts all ROI ID-name pairs from FreeSurferColorLUT.txt
+	cat $FREESURFER_HOME/FreeSurferColorLUT.txt | grep -o '^[0-9]\+\s\+[-_.a-zA-Z0-9]\+' > ROIlist.txt
+	declare -A roi_map
+	while IFS=' ' read id name  # ROI ID and ROI name are separated by space in ROIlist.txt
+	do
+		roi_map[$id]=$name  # create a hash map of ROI ID-name pairs
+	done < ROIlist.txt
+	# iterate through subjects
+    for sid in "${subjectList[@]}"
+    do
+        aparcaseg=$fmriprepDir/$sid/anat/$sid\_T1w_label-aparcaseg_roi.nii.gz  # parcellation file
+        mkdir $outDir/$sid
+        # iterate through all ROIs
+        for roi_id in "${!roi_map[@]}"
+        do
+			# use ROI ID +- 0.1 as thresholds
+            lower_thr=`echo "$roi_id-0.1" | bc`
+            upper_thr=`echo "$roi_id+0.1" | bc`
+            # get the number of voxels that has the ROI label i
+            roi_voxels=`fslstats $aparcaseg -l $lower_thr -u $upper_thr -V | grep -o '^[0-9]*'`
+            if [ $roi_voxels -gt 0 ]  # if ROI has more than 0 voxel
+            then
+				roi_name=${roi_map[$roi_id]}
+            	echo -e "${sid}\t${roi_id}\t${roi_name}\t${roi_voxels} voxels"
+                # make mask
+                fslmaths $aparcaseg -thr $lower_thr -uthr $upper_thr -bin $outDir/$sid/${sid}_roi${roi_id}${roi_name}.nii.gz
+                # resample
+                flirt -in $outDir/$sid/${sid}_roi${roi_id}${roi_name}.nii.gz \
+                      -ref $fmriprepDir/$sid/func/$sid\_task-face_run-01_bold_space-T1w_preproc.nii.gz \
+                      -applyxfm -usesqform \
+                      -out $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp.nii.gz
+                fslmaths $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp.nii.gz -thr 0.5 -bin $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp.nii.gz
+                # dilate
+                fslmaths $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp.nii.gz -kernel sphere $dilate -dilM $outDir/$sid/${sid}_roi${roi_id}${roi_name}_rsmp_dil${dilate}mm.nii.gz
+            fi
+        done
+    done
+}
+
+
+function ribbon_masks() {
+    # this function creates one corticol ribbon mask for each subject. If you need masks for another ROI,
+    # change step a and step b in this function.
+    cd $maskDir
+    for sid in "${subjectList[@]}"
+    do
+        # a) convert freesurfer ribbon.mgz to nifti
+        mri_convert $freesurferDir/$sid/mri/ribbon.mgz $outDir/$sid\_ribbon.nii.gz
+        # b) make a ribbon mask by taking out 3 (Left-Cerebral-Cortex) and 42 (Right-Cerebral-Cortex)
+        #  1) minus 22.5  2) take absolute value  3) mask out everything other than 19.5  4) convert to binary
+        fslmaths $outDir/$sid\_ribbon.nii.gz -sub 22.5 -abs -thr 19.5 -uthr 19.5 -bin $outDir/$sid\_ribbon.nii.gz
+        # c) resample
+        flirt -in $outDir/$sid\_ribbon.nii.gz \
+              -ref $fmriprepDir/$sid/func/$sid\_task-face_run-01_bold_space-T1w_preproc.nii.gz \
+              -applyxfm -usesqform \
+              -out $outDir/$sid\_ribbon_rsmp.nii.gz
+        fslmaths $outDir/$sid\_ribbon_rsmp.nii.gz -thr 0.5 -bin $outDir/$sid\_ribbon_rsmp.nii.gz
+        # d) dilate
+        fslmaths $outDir/$sid\_ribbon_rsmp.nii.gz -kernel sphere $dilate -dilM $outDir/$sid\_ribbon_rsmp_dil${dilate}mm.nii.gz
+    done
+}
+
+all_parcel_masks
+# ribbon_masks
