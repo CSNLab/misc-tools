@@ -15,14 +15,17 @@ Load fsl/5.0.10 before running this.
 import os
 import pandas as pd
 import subprocess
+import re
 
 PATH = '../fmriprep/'
-SUBJECTS = ['sub-132', 'sub-133', 'sub-134', 'sub-136', 'sub-137', 'sub-138', 'sub-139', 'sub-142', 'sub-143', 'sub-144', 'sub-145', 'sub-146', 'sub-148', 'sub-149', 'sub-154', 'sub-155', 'sub-156', 'sub-157', 'sub-159', 'sub-160', 'sub-161', 'sub-163', 'sub-166', 'sub-167', 'sub-169', 'sub-170', 'sub-171', 'sub-172', 'sub-174', 'sub-175']
 PREPROC_POSTFIX = 'space-T1w_preproc.nii.gz'  # things after "bold_"
 XYZ_MOVEMENT_CRITERION = 2.5  # too big if larger than this; will just print the info and nothing else
 
 all_rows = set()
-for subj in SUBJECTS:
+unsteady_df = {}
+subjects = [f[:7] for f in os.listdir(PATH) if f.endswith('.html') and f.startswith('sub')]
+for subj in subjects:
+    unsteady_df[subj] = {}
     filepath = PATH + subj + '/func/'
     filenames = [f for f in os.listdir(filepath)
                  if f.startswith('sub') and f.endswith('confounds.tsv')]
@@ -40,6 +43,12 @@ for subj in SUBJECTS:
         num_unsteady = len(unsteady_rows)
         all_rows.update(unsteady_rows)
         print(fname + '\trows=' + str(unsteady_rows))
+        # update df
+        task = re.findall(r'_task-[^_]+_', fname)[0][6:-1]
+        run = re.findall(r'_run-\d+_', fname)
+        col_name = task + run[0][5:-1] if len(run) > 0 else task
+        unsteady_content = num_unsteady if unsteady_rows == list(range(num_unsteady)) else str(unsteady_rows)
+        unsteady_df[subj][col_name] = unsteady_content
         if num_unsteady == 0:
             continue
 
@@ -51,3 +60,6 @@ for subj in SUBJECTS:
         subprocess.call('cd %s; fslroi %s %s %d -1' % (filepath, unsteady_name, preproc_name, num_unsteady), shell=True)
 
 print('all unsteady rows:', all_rows)
+# df output
+unsteady_df = pd.DataFrame.from_dict(unsteady_df, orient='index')
+unsteady_df.to_csv('unsteady_vols.csv')
