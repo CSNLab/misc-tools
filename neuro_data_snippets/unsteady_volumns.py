@@ -10,6 +10,15 @@ If no unsteady state is present in confounds.tsv, the file
 remains unchanged.
 
 Load fsl/5.0.10 before running this.
+
+***IMPORTANT***: When running post-fmriprep level1 analysis
+after this, remember to check if your trial onset times are
+negative numbers after removing the initial non-steady
+volumns (i.e. trial has been discarded thus onset time < 0).
+Negative onset times will be automatically converted to 0 in
+nipype without showing a warning, so if that's not what you
+want, you'd need to handle this problem yourself, before
+giving the negative numbers to nipype.
 """
 
 import os
