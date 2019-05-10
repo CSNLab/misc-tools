@@ -96,11 +96,22 @@ def get_info(events, confounds):
                                 'RotX', 'RotY', 'RotZ']
             regressors = [list(confounds[s][r][conf][remove_until:]) for conf in regressor_names]
             # print(SUBJECTS[s], r, remove_until, regressor_names)
+            
+            run_onsets = onsets(event, remove=remove_until)
+            run_durations = durations(event, remove=0)
+
+            # if onset < 0 due to NonSteadyState removal, change it to 0 and reduce the duration too
+            for i in range(len(run_onsets)):
+                for j in range(len(run_onsets[i])):
+                    if run_onsets[i][j] < 0:
+                        run_durations[i][j] += run_onsets[i][j]
+                        run_durations[i][j] = max(0, run_durations[i][j])
+                        run_onsets[i][j] = 0
 
             event = events[s][r]
             info[s].append([Bunch(conditions=conditions,
-                                  onsets=onsets(event, remove=remove_until),
-                                  durations=durations(event, remove=0),
+                                  onsets=run_onsets,
+                                  durations=run_durations,
                                   regressors=regressors,
                                   regressor_names=regressor_names)])
     return info
