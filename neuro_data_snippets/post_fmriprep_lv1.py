@@ -137,7 +137,7 @@ def specify_model(layout, func_files, info):
                 'func',
                 filename
             )]
-            spec.inputs.time_repetition = layout.get_metadata(func_files[s][r].filename)['RepetitionTime']
+            spec.inputs.time_repetition = layout.get_metadata(func_files[s][r].path)['RepetitionTime']
             spec.inputs.high_pass_filter_cutoff = 128.
             spec.inputs.subject_info = info[s][r]
             specify_model_results[s].append(spec.run())
@@ -152,7 +152,7 @@ def lv1_design(mem, layout, func_files, specify_model_results):
         for r in range(num_runs):
             if s in EXCLUDING and EXCLUDING[s] == r:
                 continue
-            tr = layout.get_metadata(func_files[s][r].filename)['RepetitionTime']
+            tr = layout.get_metadata(func_files[s][r].path)['RepetitionTime']
             level1design_results[s].append(level1design(
                 interscan_interval=tr,
                 bases={'dgamma': {'derivs': True}},
